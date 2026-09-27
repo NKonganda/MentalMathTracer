@@ -1,0 +1,16 @@
+[
+  {
+    "date": "2026-09-27",
+    "error_message": "rank.test: 23×17 expected 'difference-of-squares' top, got 'place-value-split' (three-way tie at 4.75)",
+    "root_cause": "Cost model charged 400−9 two borrow penalties, but subtracting a single digit from a round number is trivial mentally; also round-down-compensate produced a tree identical to place-value-split, inflating the tie.",
+    "fix": "Skip borrow penalty when subtrahend ≤ 10 in cost.ts; dedupe identical step trees (by joined step exprs) in rank.ts after sorting.",
+    "tags": ["cost-model", "ranking", "tie-break"]
+  },
+  {
+    "date": "2026-09-27",
+    "error_message": "TS2345 in leftToRight.ts: Type '\"square\"' is not assignable to type 'StepOp' (passing Problem.op where StepOp expected)",
+    "root_cause": "Problem['op'] ('add'|'sub'|'mul'|'div'|'square'|'pct') is wider than StepOp; applies() narrows to add/sub at runtime but TS can't see it inside expand().",
+    "fix": "Compute `adding = p.op === 'add'` once and pass the literal 'add'/'sub' to step().",
+    "tags": ["typescript", "type-narrowing", "engine"]
+  }
+]
