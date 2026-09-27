@@ -24,3 +24,9 @@
 - Replaced isKnownFact with factKind('table'|'anchor') in util.ts; WEIGHTS now: timesTableDiscount 1.25, anchorFactDiscount 0.5, divisionFactDiscount 0.75, smallAddSubDiscount 0.75, recall 0.25 (knownFactDiscount removed). rank.test 77×5 expectation updated to place-value-split.
 - New 77×5 order: place-value 2.25, round-down 2.50, x10-halve 2.75. All other required orderings unchanged; 287 tests green.
 - Wrote docs/research-prompt.md — deep-research prompt (cognitive arithmetic literature → weight recommendations); keep it in sync with cost.ts on future retunes.
+
+## 2026-09-27 — repo created and published to GitHub
+- Initialized standalone git repo (previously the project sat inside a git repo rooted at the home directory — no repo of its own).
+- Added README.md, ignored .playwright-mcp in .gitignore, initial commit on main.
+- Published public repo https://github.com/NKonganda/MentalMathTracer (gh repo create --push).
+- Enabled Pages with build_type=workflow via API; first workflow run failed at deploy-pages (404, Pages not yet enabled), rerun succeeded. Live at https://nkonganda.github.io/MentalMathTracer/.

@@ -1,6 +1,6 @@
 # Anatomy — Mental Math Path
 
-Vite + React 19 + TypeScript + Tailwind v4 (via @tailwindcss/vite). Vitest for tests. No backend; deployable to GitHub Pages (`base: './'` in vite.config.ts).
+Vite + React 19 + TypeScript + Tailwind v4 (via @tailwindcss/vite). Vitest for tests. No backend; deployed to GitHub Pages (`base: './'` in vite.config.ts) — repo: https://github.com/NKonganda/MentalMathTracer, live: https://nkonganda.github.io/MentalMathTracer/.
 
 ## Layout
 - `src/engine/` — pure TS strategy engine, no React imports
