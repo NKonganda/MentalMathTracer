@@ -13,8 +13,8 @@ Vite + React 19 + TypeScript + Tailwind v4 (via @tailwindcss/vite). Vitest for t
   - `*.test.ts` — parse (26), strategies (253, table-driven), rank (7, explicit ordering), property (500 random problems)
 - `scripts/rankings.ts` — prints full rankings for the tuning cases (`npm run rankings`)
 - `src/ui/` — React, consumes engine output only
-  - `App.tsx` — minimal start screen (title + input + hint only; no subtitle/chips/footer), live trace-as-you-type (300ms debounce via `useDebounced`; parse failures mid-typing keep last result, errors surface only on Enter; entrance animation plays on first reveal only), headline (`formatProblem` prettifies), top-3 cut + "Show all N", `?debug=1` shows everything with breakdowns open
-  - `ResultCard.tsx` — strategy card: name, explain, step chain (mono, pen-blue intermediates, vermilion final), cost badge, collapsible per-item cost breakdown; `animate` prop gates the rise entrance
+  - `App.tsx` — minimal start screen (title + input + hint only; no subtitle/chips/footer), instant trace-as-you-type (synchronous in onChange, no debounce or result animations; parse failures mid-typing keep last result, errors surface only on Enter), headline (`formatProblem` prettifies), top-3 cut + "Show all N", `?debug=1` shows everything with breakdowns open
+  - `ResultCard.tsx` — strategy card: name, explain, step chain (mono, pen-blue intermediates, vermilion final), cost badge, collapsible per-item cost breakdown (no entrance animation)
 - `.github/workflows/deploy.yml` — GitHub Pages deploy (test → build → upload dist)
 - `mocks/tree-trace.html` — standalone mock (no build step): tree-trace visualization of strategy paths — problem root → strategy columns → converging answer node, SVG wires drawn by JS, click-to-trace animation. Serve over http (file:// blocked in Playwright); design tokens duplicated inline from src/index.css.
 

@@ -31,17 +31,14 @@ function StepLines({ steps, final }: { steps: Step[]; final: number }) {
 interface Props {
   scored: ScoredStrategy;
   place: number;
-  delayMs: number;
-  animate?: boolean;
   defaultOpen?: boolean;
 }
 
-export function ResultCard({ scored, place, delayMs, animate = true, defaultOpen }: Props) {
+export function ResultCard({ scored, place, defaultOpen }: Props) {
   const { strategy, tree, cost } = scored;
   return (
     <article
-      className={`${animate ? 'rise ' : ''}relative border border-rule bg-card p-5 shadow-[3px_3px_0_0_var(--color-rule)] sm:p-6`}
-      style={animate ? { animationDelay: `${delayMs}ms` } : undefined}
+      className="relative border border-rule bg-card p-5 shadow-[3px_3px_0_0_var(--color-rule)] sm:p-6"
     >
       <span
         aria-hidden

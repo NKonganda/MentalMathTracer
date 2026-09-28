@@ -39,3 +39,4 @@ Built `mocks/tree-trace.html`: standalone (no Vite) mock showing mental-math pat
 | 2026-09-28 | Stripped start screen to title + textbox + Enter hint (removed subtitle, try-these chips, footer); results output unchanged | src/ui/App.tsx, .wolf/anatomy.md | tsc clean | ~4k |
 | 11:32 | Assessed feasibility of live trace-on-keystroke (no code changes) | src/ui/App.tsx | assessment only | ~3k |
 | 11:41 | Implemented live trace-on-keystroke (300ms debounce, errors only on Enter, first-reveal-only animation); verified in browser via Playwright; 287 tests + build pass | src/ui/App.tsx, src/ui/ResultCard.tsx | success | ~12k |
+| 11:52 | Removed debounce + result animations: trace renders synchronously in onChange; verified instant in browser; 287 tests + build pass | src/ui/App.tsx, src/ui/ResultCard.tsx | success | ~6k |

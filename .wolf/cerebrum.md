@@ -3,7 +3,8 @@
 ## Preferences
 - User thinks in graded fact-retrieval terms: times-table facts (incl. zero-stripped ones like 70×5, which they mentally do as 70×10/2) are "very low cost"; anchor facts like 75×5 are NOT equally free. Ranking must reflect this.
 - User wants evidence-grounded weights: keep `docs/research-prompt.md` in sync with the cost model whenever weights change, so their online research stays applicable.
-- 2026-09-28: User wants a minimal start screen — only the title, the input textbox, and the "Press Enter to trace the paths" hint. No subtitle, no try-these example chips, no footer. Post-input results output stays full.
+- 2026-09-28: User wants a minimal start screen — only the title, the input textbox, and the hint. No subtitle, no try-these example chips, no footer. Post-input results output stays full.
+- 2026-09-28: User prioritises showing the trace ASAP over polish: NO debounce and NO entrance animation on the results section — trace renders synchronously on every keystroke. (Transient intermediate answers while typing multi-digit numbers are accepted.) Header/input entrance `.rise` stays.
 
 ## Learnings
 - 2026-09-27: User overrode their original spec for 77×5 (spec said round-to-75/80 top; user now wants place-value-split top because 70×5 + 7×5 are both table-grade). rank.test.ts updated accordingly — the spec document is not immutable; user's latest word wins.
@@ -18,7 +19,7 @@
 - Anchor facts must stay a DISCOUNT off the procedural base (−0.75), never a flat net: a flat 0.75 net made two-digit anchors (16×25) as cheap as 7×8 and quarter-anchor wrongly topped 16×25.
 - NOT yet implemented from the audit: explicit error-probability term (folded into fact nets — large fact 1.0 sits inside the recommended 0.9–1.1 band), skill profiles (general vs trained: hold ×0.5, two-digit-square fact set), and the ~18 missing strategies in the audit's trigger table (constant difference, Nikhilam, ×11/×12 rules, aliquot division, close-together…).
 
-- 2026-09-28 (live trace): results now trace on keystroke — 300ms debounce, parse failures mid-typing silently keep the last result (no error flicker), parse errors surface only on Enter, and the `.rise` entrance animation plays only on first reveal (section remount key removed; `animate` flag threaded through `Shown` and `ResultCard`). "Show all" only resets when the parsed problem actually changes.
+- 2026-09-28 (live trace): results trace synchronously in the input's onChange (no debounce, no effect, no result animations — user's explicit preference; the initial 300ms-debounce version was replaced same day). Parse failures mid-typing silently keep the last result (no error flicker); parse errors surface only on Enter; empty input clears results; "Show all" only resets when the parsed problem actually changes.
 
 ## Do-Not-Repeat
 - Do not give one flat "known fact" discount to both times-table facts and 25/50/75 anchor facts — that's what made round-down-compensate incorrectly beat place-value-split on 77×5.

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { parse } from '../engine/parse';
 import { rank, type RankResult } from '../engine/rank';
 import { fmt } from '../engine/util';
@@ -23,22 +23,10 @@ function formatProblem(p: Problem): string {
 }
 
 const TOP_N = 3;
-const TRACE_DEBOUNCE_MS = 300;
 
 interface Shown {
   label: string;
   result: RankResult;
-  /** Play the entrance animation only on first reveal, not on live retypes. */
-  animate: boolean;
-}
-
-function useDebounced(value: string, ms: number): string {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return debounced;
 }
 
 export function App() {
@@ -51,30 +39,28 @@ export function App() {
   const [shown, setShown] = useState<Shown | null>(null);
   const [showAll, setShowAll] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const debounced = useDebounced(input, TRACE_DEBOUNCE_MS);
-
   // Trace on parseable input; mid-typing parse failures keep the last result.
-  const trace = (text: string): boolean => {
+  const trace = (text: string) => {
     const parsed = parse(text);
-    if (!parsed.ok) return false;
+    if (!parsed.ok) return;
     const label = formatProblem(parsed.problem);
     setError(null);
     if (shown?.label !== label) {
-      setShown({ label, result: rank(parsed.problem), animate: shown === null });
+      setShown({ label, result: rank(parsed.problem) });
       setShowAll(false);
     }
-    return true;
   };
 
-  useEffect(() => {
-    if (debounced.trim() === '') {
+  const handleChange = (text: string) => {
+    setInput(text);
+    if (text.trim() === '') {
       setShown(null);
       setError(null);
       setShowAll(false);
       return;
     }
-    trace(debounced);
-  }, [debounced]);
+    trace(text);
+  };
 
   // Enter traces immediately and is the only path that surfaces parse errors.
   const submit = (text: string) => {
@@ -106,7 +92,7 @@ export function App() {
             ref={inputRef}
             autoFocus
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') submit(input);
             }}
@@ -136,24 +122,18 @@ export function App() {
 
         {shown && (
           <section className="mt-10">
-            <h2 className={`${shown.animate ? 'rise ' : ''}font-display text-3xl font-semibold sm:text-4xl`}>
+            <h2 className="font-display text-3xl font-semibold sm:text-4xl">
               {shown.label} <span className="font-normal text-faint">=</span>{' '}
               <span className="text-accent">{fmt(shown.result.answer)}</span>
             </h2>
 
             {ranked.length === 0 ? (
-              <p
-                className={`${shown.animate ? 'rise ' : ''}mt-6 border border-rule bg-card p-5 text-faint`}
-                style={shown.animate ? { animationDelay: '80ms' } : undefined}
-              >
+              <p className="mt-6 border border-rule bg-card p-5 text-faint">
                 No named trick fits this one — it&rsquo;s straight arithmetic.
               </p>
             ) : (
               <>
-                <p
-                  className={`${shown.animate ? 'rise ' : ''}mt-1 text-sm text-faint`}
-                  style={shown.animate ? { animationDelay: '60ms' } : undefined}
-                >
+                <p className="mt-1 text-sm text-faint">
                   {ranked.length} {ranked.length === 1 ? 'path' : 'paths'} found, easiest first.
                 </p>
                 <div className="mt-5 flex flex-col gap-5">
@@ -162,8 +142,6 @@ export function App() {
                       key={s.strategy.id}
                       scored={s}
                       place={i + 1}
-                      delayMs={100 + i * 90}
-                      animate={shown.animate}
                       defaultOpen={debug}
                     />
                   ))}
