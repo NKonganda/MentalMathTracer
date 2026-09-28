@@ -15,17 +15,37 @@ my cost model.
 
 ## My current cost model (per step, summed over a strategy's step tree; lower = easier)
 
-- Base operation costs: add/subtract 1.0; multiply/divide by a single-digit number 1.5;
-  by a two-digit number 3.0; digit-shift (×10, ×100) 0.25; doubling 0.75; halving 0.5
-  when the tens digit is even (460→230) but 2.0 when odd (770→385, forces a split);
+Scale: 1 unit ≈ 1,000 ms of net processing time (RT minus a ~500 ms encoding/response
+intercept), per the 2026 evidence audit (Campbell 2008; Klein et al. 2010; Imbo et al.
+2007; Hitch 1978).
+
+- Base operation costs: add/subtract 1.0; multiply/divide by a single-digit number
+  graded by the problem-size effect — 1.25 (factor ≤ 3), 1.5 (4–6), 1.75 (7–9), plus
+  +0.2 for division (inverse-retrieval delay, Mauro et al. 2003); by a two-digit
+  number 3.5 (central-executive load of cross-products); digit-shift (×10, ×100) 0.15;
+  doubling 0.5 + 0.25 per digit ≥ 5 (each generates a carry); halving 0.4 for n ≤ 20
+  (inverse tie), else 0.5 + 0.4 per odd digit above the units (each sends a
+  Trachtenberg "+5" right — structurally a carry: 770→385 has two, 460→230 none);
   pattern recall (e.g. nines-complement digits, "append 25") 0.25.
-- Penalties: +0.5 per operand digit beyond 2; +1.0 per carry or borrow (waived when
-  subtracting a single-digit number — "counting back"); +0.75 per intermediate value
-  that must be held in working memory while another computation runs.
-- Discounts: −1.25 for a times-table fact (7×5, also 70×5 after stripping zeros, and
-  memorized squares ≤ 25²); −0.5 for "anchor" facts on 25/50/75/100 (75×5=375 — fast
-  but derived); −0.75 for division facts (retrieved via inverse multiplication); −0.5
-  when a step lands on a round number (multiple of 10/25/100).
+- Penalties: superlinear operand-length load — 0.5 × (digits beyond 2)^1.2 per step;
+  carries graded by column sum (Klein 2010) — +0.5 (sum 10–13) or +0.75 (14+);
+  borrows +0.65 with each extra borrow at ×0.9 (concave rise, Imbo 2007); +0.25 extra
+  for a multiplication carry ≥ 2 (active phonological maintenance); all waived on
+  retrieved facts and on subtraction-by-addition hops (pure counting up);
+  working-memory holds — 0.25 per held value per intervening step (decay, Hitch 1978),
+  ×1.5 when more than 3 values are held concurrently (Cowan 2001); ×1.075 on a step
+  right after one costing > 1.5 (sequential difficulty, Uittenhove & Lemaire 2012).
+- Fact-retrieval nets (a retrieved fact costs this instead of the procedural base;
+  lookup on operation × size × tie, Campbell 2008): addition tie 0.4, small (sum ≤ 10)
+  0.5, teen 0.9; subtraction small/tie 0.7, teen (13−6) 1.4; multiplication tie
+  (6×6…12×12) 0.4, small (product ≤ 25 or a five operand — the fives effect; also
+  zero-stripped: 70×5 works like 7×5) 0.5, large non-tie 1.0, memorized two-digit
+  squares (13²–25²) 1.0; division fact = its inverse multiplication fact + 0.2.
+- Discounts: −0.75 off the procedural base for "anchor" facts on 25/50/75/100
+  (75×5=375 — fast but derived); −0.3 when a step lands on a multiple of 10 (odd
+  multiples of 25 are anchor territory, priced by the anchor discount instead); −1.0
+  for subtraction by adding up, triggered when the subtrahend exceeds the difference
+  (Peters et al. 2010) or the direct route needs ≥ 2 borrows (Torbeyns et al. 2011).
 
 ## What I need from you
 

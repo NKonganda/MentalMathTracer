@@ -13,17 +13,27 @@ export function stripZeros(n: number): number {
 
 /** Carries required to add a + b column by column. */
 export function countCarries(a: number, b: number): number {
-  if (!isInt(a) || !isInt(b) || a < 0 || b < 0) return 0;
-  let carries = 0;
+  return carryColumnSums(a, b).length;
+}
+
+/**
+ * The column sums (carry-in included) that generate a carry when adding a + b.
+ * The carry effect is graded, not on/off: RT rises ~44 ms per unit of the
+ * units-column sum (Klein et al. 2010), so a carry from 8+6 costs more than
+ * one from 7+4.
+ */
+export function carryColumnSums(a: number, b: number): number[] {
+  if (!isInt(a) || !isInt(b) || a < 0 || b < 0) return [];
+  const sums: number[] = [];
   let carry = 0;
   while (a > 0 || b > 0) {
     const s = (a % 10) + (b % 10) + carry;
     carry = s >= 10 ? 1 : 0;
-    if (carry) carries++;
+    if (carry) sums.push(s);
     a = Math.trunc(a / 10);
     b = Math.trunc(b / 10);
   }
-  return carries;
+  return sums;
 }
 
 /** Borrows required to compute a − b column by column (a ≥ b ≥ 0). */
@@ -42,9 +52,60 @@ export function countBorrows(a: number, b: number): number {
   return borrows;
 }
 
-/** 770 → true (halving forces a split), 460 → false (halves clean). */
-export function tensDigitOdd(n: number): boolean {
-  return Math.trunc(Math.abs(n) / 10) % 2 === 1;
+/**
+ * Carries in a single-digit × multi-digit column multiplication (17×5: 7×5=35,
+ * carry the 3), split into total carries and "high" carries (value > 1, which
+ * must be actively rehearsed). Zeros are stripped first (170×5 works like 17×5).
+ * Returns zeros when both factors are multi-digit — that path is costed as a
+ * cross-product problem, not a column walk.
+ */
+export function countMulCarries(a: number, b: number): { carries: number; high: number } {
+  const x = stripZeros(a);
+  const y = stripZeros(b);
+  if (!isInt(x) || !isInt(y)) return { carries: 0, high: 0 };
+  const small = Math.min(x, y);
+  let big = Math.max(x, y);
+  if (small > 9 || big < 10) return { carries: 0, high: 0 };
+  let carries = 0;
+  let high = 0;
+  let carry = 0;
+  while (big > 0) {
+    const p = (big % 10) * small + carry;
+    carry = Math.trunc(p / 10);
+    big = Math.trunc(big / 10);
+    // a final carry-out just writes the leading digit — nothing to hold
+    if (big > 0 && carry > 0) {
+      carries++;
+      if (carry > 1) high++;
+    }
+  }
+  return { carries, high };
+}
+
+/**
+ * Odd digits above the units position: each one sends a "+5" into the next
+ * position right when halving (Trachtenberg's rule), which is structurally a
+ * carry. 770 → 2 (both sevens), 1300 → 2 (the 1 and the 3), 460 → 0.
+ */
+export function oddDigitsAboveUnits(n: number): number {
+  let m = Math.trunc(Math.abs(n) / 10);
+  let odd = 0;
+  while (m > 0) {
+    if (m % 2 === 1) odd++;
+    m = Math.trunc(m / 10);
+  }
+  return odd;
+}
+
+/** Digits ≥ 5 in n — each one generates a carry when doubling. 36 → 1, 78 → 2. */
+export function highDigits(n: number): number {
+  let m = Math.trunc(Math.abs(n));
+  let high = 0;
+  while (m > 0) {
+    if (m % 10 >= 5) high++;
+    m = Math.trunc(m / 10);
+  }
+  return high;
 }
 
 /** True if a × b reduces to a times-table fact once trailing zeros are stripped. */
@@ -83,8 +144,13 @@ export function factKind(op: StepOp, operands: number[], result: number): FactKi
     if (isTimesTable(b, Math.abs(result))) return 'table';
     if (isTimesTable(stripZeros(a), b)) return 'table';
   }
-  if (op === 'add' || op === 'sub') {
+  if (op === 'add') {
     if (abs.every((x) => x < 10)) return 'table';
+  }
+  if (op === 'sub') {
+    // inverses of single-digit additions: 13 − 6 is retrieved, not computed
+    const [a, b] = abs;
+    if (a <= 18 && b <= 9 && b <= a && Math.abs(result) <= 9) return 'table';
   }
   return null;
 }

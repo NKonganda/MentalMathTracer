@@ -23,6 +23,8 @@ export interface Step {
   op: StepOp;
   /** The values the step actually manipulates; the cost model reads these. */
   operands: number[];
+  /** Cost-model markers a strategy can attach (e.g. 'sba' on an adding-up path). */
+  tags?: string[];
   note?: string;
   substeps?: Step[];
 }

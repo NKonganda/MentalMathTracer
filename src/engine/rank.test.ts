@@ -14,10 +14,10 @@ function allSteps(steps: Step[]): Step[] {
 }
 
 describe('rank: digit-sensitive ordering', () => {
-  it('77×5: place-value split wins (70×5 and 7×5 are both table-grade); ×10-halve is NOT top (halving 770 is hard)', () => {
+  it('77×5: ×10-halve wins per the 2026 evidence audit (halving 770 is two graded carries, ~1.3, not a flat 2.5); place-value split is a close second', () => {
     const ids = rankOf('77*5').ranked.map((r) => r.strategy.id);
-    expect(ids[0]).toBe('place-value-split');
-    expect(ids.indexOf('x10-halve')).toBeGreaterThan(0); // still offered, just not first
+    expect(ids[0]).toBe('x10-halve');
+    expect(ids.indexOf('place-value-split')).toBe(1); // still the top split-family route
   });
 
   it('46×5: ×10-halve IS top (halving 460 is trivial)', () => {

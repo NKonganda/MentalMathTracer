@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mental Math Path — Trace Tree (mock)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    --paper: #faf6ee;
+    --card: #fffdf7;
+    --ink: #211d18;
+    --faint: #857c6b;
+    --rule: #e4dccb;
+    --accent: #be4318;
+    --pen: #35569e;
+    --good: #2f7d46;
+    --font-display: "Fraunces", ui-serif, Georgia, serif;
+    --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(33, 29, 24, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(33, 29, 24, 0.045) 1px, transparent 1px);
+    background-size: 28px 28px;
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  /* ---------- header ---------- */
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(30px, 5vw, 44px);
+    line-height: 1.1;
+    margin: 8px 0 6px;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .sub {
+    color: var(--faint);
+    font-size: 15px;
+    max-width: 56ch;
+    margin: 0;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin-top: 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--faint);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 18px; height: 0; border-top: 2px solid var(--pen); }
+  .swatch.accent { border-color: var(--accent); }
+  .swatch.dashed { border-top-style: dashed; border-color: var(--faint); }
+
+  /* ---------- board ---------- */
+  .board-scroll { overflow-x: auto; margin-top: 40px; padding-bottom: 8px; }
+  .board {
+    position: relative;
+    min-width: 780px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  svg.wires {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+  svg.wires path {
+    fill: none;
+    stroke-width: 2;
+    transition: opacity 0.3s ease;
+  }
+  svg.wires path.main { stroke: var(--pen); }
+  svg.wires path.sub-wire {
+    stroke: var(--faint);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+  }
+
+  .row-root, .row-answer {
+    display: flex;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+  .row-paths {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(230px, 1fr));
+    gap: 0 28px;
+    margin: 72px 0;
+    position: relative;
+    z-index: 1;
+  }
+  .path-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    cursor: pointer;
+  }
+
+  /* ---------- nodes ---------- */
+  .node {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    box-shadow: 3px 3px 0 0 var(--rule);
+    padding: 10px 14px;
+    position: relative;
+    max-width: 260px;
+    transition: opacity 0.3s ease, transform 0.2s ease, border-color 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+  .node .expr {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .node .expr .arrow { color: var(--rule); padding: 0 2px; }
+  .node .expr .result { color: var(--pen); font-weight: 500; }
+  .node .note {
+    font-size: 11.5px;
+    font-style: italic;
+    color: var(--faint);
+    margin-top: 2px;
+  }
+  .op-tag {
+    position: absolute;
+    top: -9px;
+    right: 10px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 1px 6px;
+  }
+
+  .node.root {
+    padding: 14px 26px;
+    box-shadow: 4px 4px 0 0 var(--rule);
+  }
+  .node.root .expr { font-size: 26px; font-weight: 600; }
+
+  .node.answer {
+    border-color: var(--accent);
+    box-shadow: 4px 4px 0 0 rgba(190, 67, 24, 0.35);
+    padding: 14px 30px;
+  }
+  .node.answer .expr { font-size: 26px; }
+  .node.answer .expr .result { color: var(--accent); font-weight: 600; }
+
+  /* substep satellite */
+  .sub-node {
+    background: var(--card);
+    border: 1px dashed var(--rule);
+    padding: 7px 11px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--faint);
+    transition: opacity 0.3s ease;
+  }
+  .sub-node div + div { margin-top: 3px; }
+  .sub-node .result { color: var(--pen); }
+  .step-cell {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  /* ---------- path headers ---------- */
+  .path-head {
+    text-align: center;
+    transition: opacity 0.3s ease;
+  }
+  .path-head .rank {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 30px;
+    color: var(--rule);
+    line-height: 1;
+  }
+  .path-head h2 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 2px 0 3px;
+  }
+  .path-head .explain {
+    font-size: 12.5px;
+    color: var(--faint);
+    margin: 0 0 8px;
+    max-width: 24ch;
+    margin-inline: auto;
+  }
+  .cost-badge {
+    display: inline-block;
+    border: 1px solid var(--rule);
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--faint);
+    background: var(--card);
+  }
+  .path-col.winner .cost-badge {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .path-col.winner .path-head .rank { color: var(--accent); }
+
+  /* ---------- active-trace states ---------- */
+  .board[data-active] .path-col:not(.active) .node,
+  .board[data-active] .path-col:not(.active) .sub-node,
+  .board[data-active] .path-col:not(.active) .path-head {
+    opacity: 0.38;
+  }
+  .board[data-active] svg.wires path.main:not(.active-wire) { opacity: 0.22; }
+  .board[data-active] svg.wires path.sub-wire:not(.active-wire) { opacity: 0.25; }
+
+  svg.wires path.active-wire.main { stroke: var(--accent); stroke-width: 3; }
+  .path-col.active .node.lit {
+    border-color: var(--accent);
+    box-shadow: 3px 3px 0 0 rgba(190, 67, 24, 0.35);
+  }
+  .path-col.active .node.lit .expr .result { color: var(--accent); }
+
+  .node.answer.pulse { animation: pulse 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.07); }
+    100% { transform: scale(1); }
+  }
+
+  .path-col:hover .node { transform: translate(-1px, -1px); }
+  .path-col:focus-visible { outline: 2px solid var(--pen); outline-offset: 4px; }
+
+  /* ---------- entrance ---------- */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
+  .rise { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+  .hint {
+    margin-top: 28px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--faint);
+  }
+  .hint button {
+    font: inherit;
+    color: var(--pen);
+    background: none;
+    border: none;
+    border-bottom: 1px dashed var(--pen);
+    padding: 0;
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rise, .node.answer.pulse { animation: none; }
+    .node, .sub-node, .path-head, svg.wires path { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker rise">Mental Math Path · Tree Trace Mock</p>
+    <h1 class="rise" style="animation-delay: 60ms">
+      Every path to <em>385</em>
+    </h1>
+    <p class="sub rise" style="animation-delay: 120ms">
+      One problem, three ways to think it through. Each branch is a strategy the
+      engine found for <span style="font-family: var(--font-mono)">77 × 5</span>;
+      the cheapest trace is highlighted.
+    </p>
+    <div class="legend rise" style="animation-delay: 180ms">
+      <span><i class="swatch accent"></i> active trace</span>
+      <span><i class="swatch"></i> other paths</span>
+      <span><i class="swatch dashed"></i> substeps (side work)</span>
+    </div>
+  </header>
+
+  <div class="board-scroll">
+    <div class="board" id="board">
+      <svg class="wires" id="wires" aria-hidden="true"></svg>
+      <div class="row-root rise" style="animation-delay: 240ms">
+        <div class="node root" id="root">
+          <span class="op-tag">problem</span>
+          <div class="expr">77 × 5</div>
+        </div>
+      </div>
+      <div class="row-paths" id="paths"></div>
+      <div class="row-answer rise" style="animation-delay: 700ms">
+        <div class="node answer" id="answer">
+          <div class="expr"><span class="arrow">=</span> <span class="result">385</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="hint rise" style="animation-delay: 760ms">
+    click a path to trace it · <button id="replay" type="button">replay trace</button>
+  </p>
+</div>
+
+<script>
+  const PATHS = [
+    {
+      id: 'p1',
+      rank: 1,
+      name: 'Times ten, then halve',
+      explain: '×5 is just ×10 ÷ 2 — shift a digit, cut in half.',
+      cost: 2.1,
+      steps: [
+        { expr: '77 × 10', result: '770', op: 'shift', note: 'append a zero' },
+        {
+          expr: '770 ÷ 2', result: '385', op: 'halve',
+          substeps: [
+            { expr: '700 ÷ 2', result: '350' },
+            { expr: '70 ÷ 2', result: '35' },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'p2',
+      rank: 2,
+      name: 'Split the tens',
+      explain: 'Break 77 into 70 + 7 and multiply each part.',
+      cost: 3.45,
+      steps: [
+        { expr: '77 = 70 + 7', result: '', op: 'recall', note: 'split by place value' },
+        { expr: '70 × 5', result: '350', op: 'mul' },
+        { expr: '7 × 5', result: '35', op: 'mul', note: 'known fact' },
+        { expr: '350 + 35', result: '385', op: 'add' },
+      ],
+    },
+    {
+      id: 'p3',
+      rank: 3,
+      name: 'Round up & repair',
+      explain: 'Treat 77 as 80 − 3, then take back the extra.',
+      cost: 3.8,
+      steps: [
+        { expr: '77 = 80 − 3', result: '', op: 'recall', note: 'round to a friendly 80' },
+        { expr: '80 × 5', result: '400', op: 'mul' },
+        { expr: '3 × 5', result: '15', op: 'mul', note: 'known fact' },
+        { expr: '400 − 15', result: '385', op: 'sub' },
+      ],
+    },
+  ];
+
+  const board = document.getElementById('board');
+  const wires = document.getElementById('wires');
+  const pathsRow = document.getElementById('paths');
+  const rootNode = document.getElementById('root');
+  const answerNode = document.getElementById('answer');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // segments: { from, to, kind: 'main'|'sub', pathId, order }
+  const segments = [];
+  let riseDelay = 300;
+
+  PATHS.forEach((p) => {
+    const col = document.createElement('div');
+    col.className = 'path-col' + (p.rank === 1 ? ' winner' : '');
+    col.dataset.path = p.id;
+    col.tabIndex = 0;
+    col.setAttribute('role', 'button');
+    col.setAttribute('aria-label', `Trace path: ${p.name}`);
+
+    const head = document.createElement('div');
+    head.className = 'path-head rise';
+    head.style.animationDelay = riseDelay + 'ms';
+    head.innerHTML =
+      `<div class="rank">${p.rank}</div><h2>${p.name}</h2>` +
+      `<p class="explain">${p.explain}</p>` +
+      `<span class="cost-badge">cost ${p.cost.toFixed(2)}</span>`;
+    col.appendChild(head);
+    riseDelay += 60;
+
+    let prev = null;
+    p.steps.forEach((s, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'step-cell';
+
+      const node = document.createElement('div');
+      node.className = 'node rise';
+      node.style.animationDelay = riseDelay + 'ms';
+      riseDelay += 60;
+      const resultHtml = s.result
+        ? `<span class="arrow">→</span> <span class="result">${s.result}</span>`
+        : '';
+      node.innerHTML =
+        `<span class="op-tag">${s.op}</span>` +
+        `<div class="expr">${s.expr} ${resultHtml}</div>` +
+        (s.note ? `<div class="note">${s.note}</div>` : '');
+      cell.appendChild(node);
+
+      if (s.substeps) {
+        const sat = document.createElement('div');
+        sat.className = 'sub-node rise';
+        sat.style.animationDelay = riseDelay + 'ms';
+        sat.innerHTML = s.substeps
+          .map((ss) => `${ss.expr} → <span class="result">${ss.result}</span>`)
+          .map((h) => `<div>${h}</div>`)
+          .join('');
+        cell.appendChild(sat);
+        segments.push({ from: node, to: sat, kind: 'sub', pathId: p.id, order: i + 0.5 });
+      }
+
+      col.appendChild(cell);
+      segments.push({
+        from: prev || rootNode,
+        to: node,
+        kind: 'main',
+        pathId: p.id,
+        order: i,
+      });
+      prev = node;
+    });
+
+    segments.push({
+      from: prev,
+      to: answerNode,
+      kind: 'main',
+      pathId: p.id,
+      order: p.steps.length,
+    });
+
+    col.addEventListener('click', () => trace(p.id));
+    col.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); trace(p.id); }
+    });
+    pathsRow.appendChild(col);
+  });
+
+  function anchor(el, edge) {
+    const b = board.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return {
+      x: r.left - b.left + r.width / 2,
+      y: edge === 'bottom' ? r.bottom - b.top : r.top - b.top,
+    };
+  }
+  function sideAnchor(el, side) {
+    const b = board.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return {
+      x: side === 'right' ? r.right - b.left : r.left - b.left,
+      y: r.top - b.top + r.height / 2,
+    };
+  }
+
+  function draw() {
+    wires.innerHTML = '';
+    wires.setAttribute('viewBox', `0 0 ${board.offsetWidth} ${board.offsetHeight}`);
+    segments.forEach((seg) => {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      if (seg.kind === 'sub') {
+        const a = sideAnchor(seg.from, 'right');
+        const b = sideAnchor(seg.to, 'left');
+        el.setAttribute('d', `M ${a.x} ${a.y} C ${a.x + 12} ${a.y}, ${b.x - 12} ${b.y}, ${b.x} ${b.y}`);
+        el.setAttribute('class', 'sub-wire');
+      } else {
+        const a = anchor(seg.from, 'bottom');
+        const b = anchor(seg.to, 'top');
+        const bend = Math.min(46, Math.abs(b.y - a.y) * 0.55);
+        el.setAttribute('d', `M ${a.x} ${a.y} C ${a.x} ${a.y + bend}, ${b.x} ${b.y - bend}, ${b.x} ${b.y}`);
+        el.setAttribute('class', 'main');
+      }
+      seg.el = el;
+      wires.appendChild(el);
+    });
+  }
+
+  let timers = [];
+  function trace(pathId) {
+    timers.forEach(clearTimeout);
+    timers = [];
+    board.dataset.active = pathId;
+    answerNode.classList.remove('pulse');
+
+    document.querySelectorAll('.path-col').forEach((c) => {
+      c.classList.toggle('active', c.dataset.path === pathId);
+      c.querySelectorAll('.node').forEach((n) => n.classList.remove('lit'));
+    });
+    segments.forEach((s) => s.el && s.el.classList.remove('active-wire'));
+
+    const active = segments
+      .filter((s) => s.pathId === pathId)
+      .sort((a, b) => a.order - b.order);
+    const col = document.querySelector(`.path-col[data-path="${pathId}"]`);
+    const nodes = [...col.querySelectorAll('.step-cell > .node')];
+    const STEP = reduceMotion ? 0 : 300;
+
+    active.forEach((seg, i) => {
+      const go = () => {
+        const len = seg.el.getTotalLength();
+        seg.el.classList.add('active-wire');
+        if (!reduceMotion && seg.kind === 'main') {
+          seg.el.style.strokeDasharray = len;
+          seg.el.style.strokeDashoffset = len;
+          seg.el.getBoundingClientRect(); // flush
+          seg.el.style.transition = 'stroke-dashoffset 0.3s ease';
+          seg.el.style.strokeDashoffset = '0';
+        }
+        const target = seg.kind === 'main' && nodes[Math.round(seg.order)];
+        if (target) timers.push(setTimeout(() => target.classList.add('lit'), STEP));
+        if (seg.to === answerNode) {
+          timers.push(setTimeout(() => answerNode.classList.add('pulse'), STEP));
+        }
+      };
+      if (STEP === 0) go();
+      else timers.push(setTimeout(go, i * STEP));
+    });
+  }
+
+  draw();
+  window.addEventListener('resize', () => {
+    const active = board.dataset.active;
+    draw();
+    if (active) {
+      segments
+        .filter((s) => s.pathId === active)
+        .forEach((s) => s.el.classList.add('active-wire'));
+    }
+  });
+  document.getElementById('replay').addEventListener('click', () => {
+    trace(board.dataset.active || 'p1');
+  });
+
+  // auto-trace the winner after the entrance settles
+  timers.push(setTimeout(() => trace('p1'), reduceMotion ? 0 : 1200));
+</script>
+</body>
+</html>
