@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { parse } from '../engine/parse';
 import { rank, type RankResult } from '../engine/rank';
 import { fmt } from '../engine/util';
@@ -22,23 +22,23 @@ function formatProblem(p: Problem): string {
   }
 }
 
-const EXAMPLES = [
-  '77 × 5',
-  '46 × 5',
-  '23 × 17',
-  '48²',
-  '1000 − 423',
-  '15% of 240',
-  '68 + 57',
-  '144 ÷ 12',
-  '16 × 25',
-];
-
 const TOP_N = 3;
+const TRACE_DEBOUNCE_MS = 300;
 
 interface Shown {
   label: string;
   result: RankResult;
+  /** Play the entrance animation only on first reveal, not on live retypes. */
+  animate: boolean;
+}
+
+function useDebounced(value: string, ms: number): string {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return debounced;
 }
 
 export function App() {
@@ -51,23 +51,41 @@ export function App() {
   const [shown, setShown] = useState<Shown | null>(null);
   const [showAll, setShowAll] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounced = useDebounced(input, TRACE_DEBOUNCE_MS);
 
+  // Trace on parseable input; mid-typing parse failures keep the last result.
+  const trace = (text: string): boolean => {
+    const parsed = parse(text);
+    if (!parsed.ok) return false;
+    const label = formatProblem(parsed.problem);
+    setError(null);
+    if (shown?.label !== label) {
+      setShown({ label, result: rank(parsed.problem), animate: shown === null });
+      setShowAll(false);
+    }
+    return true;
+  };
+
+  useEffect(() => {
+    if (debounced.trim() === '') {
+      setShown(null);
+      setError(null);
+      setShowAll(false);
+      return;
+    }
+    trace(debounced);
+  }, [debounced]);
+
+  // Enter traces immediately and is the only path that surfaces parse errors.
   const submit = (text: string) => {
+    if (text.trim() === '') return;
     const parsed = parse(text);
     if (!parsed.ok) {
       setError(parsed.error);
       setShown(null);
       return;
     }
-    setError(null);
-    setShowAll(false);
-    setShown({ label: formatProblem(parsed.problem), result: rank(parsed.problem) });
-  };
-
-  const tryExample = (ex: string) => {
-    setInput(ex);
-    submit(ex);
-    inputRef.current?.focus();
+    trace(text);
   };
 
   const ranked = shown?.result.ranked ?? [];
@@ -81,9 +99,6 @@ export function App() {
           <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
             Mental Math Path
           </h1>
-          <p className="mt-2 text-faint">
-            Type a problem — see the easiest ways to do it in your head.
-          </p>
         </header>
 
         <div className="rise mt-8" style={{ animationDelay: '60ms' }}>
@@ -108,23 +123,9 @@ export function App() {
             </p>
           ) : (
             <p className="mt-2 text-sm text-faint">
-              Press <span className="font-mono">Enter</span> to trace the paths.
+              Paths trace as you type.
             </p>
           )}
-        </div>
-
-        <div className="rise mt-5 flex flex-wrap gap-2" style={{ animationDelay: '120ms' }}>
-          <span className="py-1 text-sm italic text-faint">Try these:</span>
-          {EXAMPLES.map((ex) => (
-            <button
-              key={ex}
-              type="button"
-              onClick={() => tryExample(ex)}
-              className="border border-rule bg-card px-2.5 py-1 font-mono text-sm text-ink transition-colors hover:border-ink"
-            >
-              {ex}
-            </button>
-          ))}
         </div>
 
         {debug && (
@@ -134,19 +135,25 @@ export function App() {
         )}
 
         {shown && (
-          <section className="mt-10" key={shown.label + String(shown.result.answer)}>
-            <h2 className="rise font-display text-3xl font-semibold sm:text-4xl">
+          <section className="mt-10">
+            <h2 className={`${shown.animate ? 'rise ' : ''}font-display text-3xl font-semibold sm:text-4xl`}>
               {shown.label} <span className="font-normal text-faint">=</span>{' '}
               <span className="text-accent">{fmt(shown.result.answer)}</span>
             </h2>
 
             {ranked.length === 0 ? (
-              <p className="rise mt-6 border border-rule bg-card p-5 text-faint" style={{ animationDelay: '80ms' }}>
+              <p
+                className={`${shown.animate ? 'rise ' : ''}mt-6 border border-rule bg-card p-5 text-faint`}
+                style={shown.animate ? { animationDelay: '80ms' } : undefined}
+              >
                 No named trick fits this one — it&rsquo;s straight arithmetic.
               </p>
             ) : (
               <>
-                <p className="rise mt-1 text-sm text-faint" style={{ animationDelay: '60ms' }}>
+                <p
+                  className={`${shown.animate ? 'rise ' : ''}mt-1 text-sm text-faint`}
+                  style={shown.animate ? { animationDelay: '60ms' } : undefined}
+                >
                   {ranked.length} {ranked.length === 1 ? 'path' : 'paths'} found, easiest first.
                 </p>
                 <div className="mt-5 flex flex-col gap-5">
@@ -156,6 +163,7 @@ export function App() {
                       scored={s}
                       place={i + 1}
                       delayMs={100 + i * 90}
+                      animate={shown.animate}
                       defaultOpen={debug}
                     />
                   ))}
@@ -182,11 +190,6 @@ export function App() {
             )}
           </section>
         )}
-
-        <footer className="mt-20 border-t border-rule pt-4 text-xs text-faint">
-          Every path is checked against exact arithmetic — a wrong answer is never shown.
-          Ranking weights live in <span className="font-mono">src/engine/cost.ts</span>.
-        </footer>
       </main>
     </div>
   );

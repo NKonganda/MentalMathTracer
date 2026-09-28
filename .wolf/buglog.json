@@ -1,16 +1,61 @@
 [
   {
     "date": "2026-09-27",
-    "error_message": "rank.test: 23×17 expected 'difference-of-squares' top, got 'place-value-split' (three-way tie at 4.75)",
-    "root_cause": "Cost model charged 400−9 two borrow penalties, but subtracting a single digit from a round number is trivial mentally; also round-down-compensate produced a tree identical to place-value-split, inflating the tie.",
-    "fix": "Skip borrow penalty when subtrahend ≤ 10 in cost.ts; dedupe identical step trees (by joined step exprs) in rank.ts after sorting.",
-    "tags": ["cost-model", "ranking", "tie-break"]
+    "error_message": "rank.test: 23\u00d717 expected 'difference-of-squares' top, got 'place-value-split' (three-way tie at 4.75)",
+    "root_cause": "Cost model charged 400\u22129 two borrow penalties, but subtracting a single digit from a round number is trivial mentally; also round-down-compensate produced a tree identical to place-value-split, inflating the tie.",
+    "fix": "Skip borrow penalty when subtrahend \u2264 10 in cost.ts; dedupe identical step trees (by joined step exprs) in rank.ts after sorting.",
+    "tags": [
+      "cost-model",
+      "ranking",
+      "tie-break"
+    ]
   },
   {
     "date": "2026-09-27",
     "error_message": "TS2345 in leftToRight.ts: Type '\"square\"' is not assignable to type 'StepOp' (passing Problem.op where StepOp expected)",
     "root_cause": "Problem['op'] ('add'|'sub'|'mul'|'div'|'square'|'pct') is wider than StepOp; applies() narrows to add/sub at runtime but TS can't see it inside expand().",
     "fix": "Compute `adding = p.op === 'add'` once and pass the literal 'add'/'sub' to step().",
-    "tags": ["typescript", "type-narrowing", "engine"]
+    "tags": [
+      "typescript",
+      "type-narrowing",
+      "engine"
+    ]
+  },
+  {
+    "id": "bug-003",
+    "timestamp": "2026-09-27",
+    "error_message": "rank.test: 77\u00d75 expected 'place-value-split' top, got 'round-down-compensate' (1.75 vs 2.50) after research-calibrated weight update",
+    "file": "src/engine/cost.ts",
+    "root_cause": "New graded table-fact tiers put 7\u00d75 in the large tier (\u22121.0) while the anchor discount rose to \u22120.75 AND anchor results (375) double-dipped the %25 round-number bonus \u2014 recreating the exact regression in Do-Not-Repeat.",
+    "fix": "Two evidence-grounded adjustments: (1) easy fact tier = tie || min factor \u2264 3 || a five operand (the documented fives effect); (2) round-number bonus narrowed to multiples of 10 \u2014 odd multiples of 25 are priced by the anchor discount, not the round bonus.",
+    "tags": [
+      "cost-model",
+      "ranking",
+      "weights",
+      "regression",
+      "fives-effect"
+    ],
+    "related_bugs": [
+      "bug-001"
+    ],
+    "occurrences": 1,
+    "last_seen": "2026-09-27"
+  },
+  {
+    "id": "bug-004",
+    "timestamp": "2026-09-27T17:25:00",
+    "error_message": "quarter-anchor wrongly topped 16\u00d725 (0.45) after audit-v2 recalibration; rank.test '16\u00d725: factor-and-regroup is top' failed",
+    "file": "src/engine/cost.ts",
+    "root_cause": "anchor facts were converted from a discount off the procedural base to a flat retrieval net of 0.75, which priced two-digit anchor products (16\u00d725) as cheap as single-digit facts",
+    "fix": "restored anchor semantics as a discount: factNet returns base \u2212 anchorFactDiscount (0.75) for kind 'anchor', so the net scales with the procedural base (16\u00d725 \u2192 3.5\u22120.75)",
+    "tags": [
+      "cost-model",
+      "anchor-fact",
+      "recalibration",
+      "ranking"
+    ],
+    "related_bugs": [],
+    "occurrences": 1,
+    "last_seen": "2026-09-27T17:25:00"
   }
 ]
